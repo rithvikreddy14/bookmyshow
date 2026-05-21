@@ -1,0 +1,8 @@
+# Python environment
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# Environment variables (NEVER push this to GitHub)
+.env
