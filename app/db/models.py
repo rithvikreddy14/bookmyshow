@@ -11,6 +11,7 @@ class Theatre(Base):
 
     # Relationships
     users = relationship("User", back_populates="theatre")
+    screens = relationship("Screen", back_populates="theatre", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -26,3 +27,25 @@ class User(Base):
 
     # Relationships
     theatre = relationship("Theatre", back_populates="users")
+
+class Screen(Base):
+    __tablename__ = "screens"
+    id = Column(Integer, primary_key=True, index=True)
+    theatre_id = Column(Integer, ForeignKey("theatres.id", ondelete="CASCADE"), nullable=False)
+    screen_name = Column(String(50), nullable=False)
+    total_capacity = Column(Integer, nullable=False)
+
+    # Relationships
+    theatre = relationship("Theatre", back_populates="screens")
+    seats = relationship("Seat", back_populates="screen", cascade="all, delete-orphan")
+
+class Seat(Base):
+    __tablename__ = "seats"
+    id = Column(Integer, primary_key=True, index=True)
+    screen_id = Column(Integer, ForeignKey("screens.id", ondelete="CASCADE"), nullable=False)
+    row_identifier = Column(String(5), nullable=False)
+    seat_number = Column(Integer, nullable=False)
+    seat_type = Column(Enum('Standard', 'Premium', 'Recliner', name="seat_types"), default='Standard')
+
+    # Relationships
+    screen = relationship("Screen", back_populates="seats")
