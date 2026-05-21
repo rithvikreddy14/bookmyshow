@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm # Add this import
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas.user_schema import UserCreate, UserResponse, Token, UserLogin
+from app.schemas.user_schema import UserCreate, UserResponse, Token # Removed UserLogin
 from app.core.security import get_password_hash, verify_password, create_access_token
 
 router = APIRouter()
@@ -28,9 +29,11 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+# --- UPDATED LOGIN ROUTE ---
 @router.post("/login", response_model=Token)
-def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_credentials.email).first()
+def login_user(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # OAuth2 strongly enforces the field name 'username', so we check our 'email' column against it
+    user = db.query(User).filter(User.email == user_credentials.username).first()
     
     if not user or not verify_password(user_credentials.password, user.password_hash):
         raise HTTPException(
