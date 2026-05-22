@@ -16,3 +16,16 @@ class ShowResponse(ShowBase):
 
     class Config:
         from_attributes = True
+
+class ShowSeatMapResponse(BaseModel):
+    id: int
+    show_id: int
+    seat_id: int
+    price: float
+    status: str
+    row_identifier: str
+    seat_number: int
+    seat_type: str
+
+    class Config:
+        from_attributes = True
