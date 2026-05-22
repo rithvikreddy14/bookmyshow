@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Date, DateTime
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -49,3 +49,28 @@ class Seat(Base):
 
     # Relationships
     screen = relationship("Screen", back_populates="seats")
+
+class Movie(Base):
+    __tablename__ = "movies"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    language = Column(String(50))
+    genre = Column(String(50))
+    duration_mins = Column(Integer)
+    release_date = Column(Date)
+
+    # Relationships
+    shows = relationship("Show", back_populates="movie", cascade="all, delete-orphan")
+
+class Show(Base):
+    __tablename__ = "shows"
+    id = Column(Integer, primary_key=True, index=True)
+    movie_id = Column(Integer, ForeignKey("movies.id", ondelete="CASCADE"), nullable=False)
+    screen_id = Column(Integer, ForeignKey("screens.id", ondelete="CASCADE"), nullable=False)
+    show_date = Column(Date, nullable=False)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+
+    # Relationships
+    movie = relationship("Movie", back_populates="shows")
+    screen = relationship("Screen", backref="shows")
