@@ -5,6 +5,7 @@ from app.db.database import get_db
 from app.db.models import Show, Movie, Screen, User, Seat, ShowSeat
 from app.schemas.show_schema import ShowCreate, ShowResponse
 from app.api.dependencies import RoleChecker
+from app.schemas.show_schema import ShowSeatMapResponse
 
 router = APIRouter()
 allow_admins = RoleChecker(["SuperAdmin", "TheatreAdmin"])
@@ -67,3 +68,40 @@ def get_shows(movie_id: int = None, db: Session = Depends(get_db)):
     if movie_id:
         query = query.filter(Show.movie_id == movie_id)
     return query.all()
+
+@router.get("/{show_id}/seats", response_model=List[ShowSeatMapResponse])
+def get_show_seat_map(show_id: int, db: Session = Depends(get_db)):
+    # 1. Verify the Show exists
+    show = db.query(Show).filter(Show.id == show_id).first()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+
+    # 2. Perform an SQL JOIN to merge real-time status with physical layout
+    seat_map = db.query(
+        ShowSeat.id,
+        ShowSeat.show_id,
+        ShowSeat.seat_id,
+        ShowSeat.price,
+        ShowSeat.status,
+        Seat.row_identifier,
+        Seat.seat_number,
+        Seat.seat_type
+    ).join(Seat, ShowSeat.seat_id == Seat.id)\
+     .filter(ShowSeat.show_id == show_id)\
+     .all()
+
+    # 3. Format the response
+    formatted_seats = []
+    for seat in seat_map:
+        formatted_seats.append({
+            "id": seat.id,
+            "show_id": seat.show_id,
+            "seat_id": seat.seat_id,
+            "price": float(seat.price),
+            "status": seat.status, # 'Available', 'Locked', or 'Booked'
+            "row_identifier": seat.row_identifier,
+            "seat_number": seat.seat_number,
+            "seat_type": seat.seat_type
+        })
+
+    return formatted_seats
