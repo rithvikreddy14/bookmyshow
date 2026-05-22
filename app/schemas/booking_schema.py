@@ -9,3 +9,9 @@ class BookingResponse(BaseModel):
     booking_id: int
     total_amount: float
     message: str
+
+class PaymentResponse(BaseModel):
+    booking_id: int
+    transaction_id: str
+    status: str
+    message: str

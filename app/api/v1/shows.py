@@ -6,6 +6,7 @@ from app.db.models import Show, Movie, Screen, User, Seat, ShowSeat
 from app.schemas.show_schema import ShowCreate, ShowResponse
 from app.api.dependencies import RoleChecker
 from app.schemas.show_schema import ShowSeatMapResponse
+from datetime import datetime, timedelta
 
 router = APIRouter()
 allow_admins = RoleChecker(["SuperAdmin", "TheatreAdmin"])
@@ -99,6 +100,49 @@ def get_show_seat_map(show_id: int, db: Session = Depends(get_db)):
             "seat_id": seat.seat_id,
             "price": float(seat.price),
             "status": seat.status, # 'Available', 'Locked', or 'Booked'
+            "row_identifier": seat.row_identifier,
+            "seat_number": seat.seat_number,
+            "seat_type": seat.seat_type
+        })
+
+    return formatted_seats
+
+@router.get("/{show_id}/seats", response_model=List[ShowSeatMapResponse])
+def get_show_seat_map(show_id: int, db: Session = Depends(get_db)):
+    show = db.query(Show).filter(Show.id == show_id).first()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+
+    # Fetch the seats (we now also need to select the locked_at column)
+    seat_map = db.query(
+        ShowSeat.id,
+        ShowSeat.show_id,
+        ShowSeat.seat_id,
+        ShowSeat.price,
+        ShowSeat.status,
+        ShowSeat.locked_at, # Added this!
+        Seat.row_identifier,
+        Seat.seat_number,
+        Seat.seat_type
+    ).join(Seat, ShowSeat.seat_id == Seat.id)\
+     .filter(ShowSeat.show_id == show_id)\
+     .all()
+
+    formatted_seats = []
+    expiration_time = datetime.utcnow() - timedelta(minutes=10) # 10 minute window
+
+    for seat in seat_map:
+        # LAZY EXPIRATION LOGIC
+        current_status = seat.status
+        if current_status == 'Locked' and seat.locked_at and seat.locked_at < expiration_time:
+            current_status = 'Available' # Treat as available if the lock has expired
+
+        formatted_seats.append({
+            "id": seat.id,
+            "show_id": seat.show_id,
+            "seat_id": seat.seat_id,
+            "price": float(seat.price),
+            "status": current_status, 
             "row_identifier": seat.row_identifier,
             "seat_number": seat.seat_number,
             "seat_type": seat.seat_type
