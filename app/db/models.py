@@ -90,20 +90,6 @@ class ShowSeat(Base):
     seat = relationship("Seat", backref="show_mappings")
 
 
-class Booking(Base):
-    __tablename__ = "bookings"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    show_id = Column(Integer, ForeignKey("shows.id", ondelete="CASCADE"), nullable=False)
-    total_amount = Column(Numeric(10, 2), nullable=False)
-    booking_status = Column(Enum('Pending', 'Confirmed', 'Cancelled', name="booking_status_enum"), default='Pending')
-    created_at = Column(DateTime, default=func.now())
-
-    # Relationships
-    user = relationship("User", backref="bookings")
-    show = relationship("Show", backref="bookings")
-    booking_seats = relationship("BookingSeat", back_populates="booking", cascade="all, delete-orphan")
-
 class BookingSeat(Base):
     __tablename__ = "booking_seats"
     id = Column(Integer, primary_key=True, index=True)
@@ -113,3 +99,21 @@ class BookingSeat(Base):
     # Relationships
     booking = relationship("Booking", back_populates="booking_seats")
     show_seat = relationship("ShowSeat", backref="booking_links")
+
+
+class Booking(Base):
+    __tablename__ = "bookings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    show_id = Column(Integer, ForeignKey("shows.id", ondelete="CASCADE"), nullable=False)
+    total_amount = Column(Numeric(10, 2), nullable=False)
+    booking_status = Column(Enum('Pending', 'Confirmed', 'Cancelled', name="booking_status_enum"), default='Pending')
+    created_at = Column(DateTime, default=func.now())
+    
+    razorpay_order_id = Column(String(255), nullable=True) 
+    razorpay_payment_id = Column(String(255), nullable=True)
+
+    # Relationships
+    user = relationship("User", backref="bookings")
+    show = relationship("Show", backref="bookings")
+    booking_seats = relationship("BookingSeat", back_populates="booking", cascade="all, delete-orphan")
